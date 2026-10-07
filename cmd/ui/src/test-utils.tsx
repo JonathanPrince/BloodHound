@@ -82,7 +82,7 @@ const createProviders: (options: React.PropsWithChildren<CreateProvidersOptions>
                             <NotificationsProvider>
                                 <AnnouncementProvider>
                                     <BrowserRouter future={reactRouterFutureFlags}>
-                                        <AppNameProvider name='BloodHound Community Edition'>
+                                        <AppNameProvider name='RACFHound'>
                                             <SnackbarProvider>{children}</SnackbarProvider>
                                         </AppNameProvider>
                                     </BrowserRouter>

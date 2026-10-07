@@ -132,6 +132,9 @@ services:
       bhe_enable_text_logger: ${bhe_enable_text_logger:-true}
       bhe_recreate_default_admin: ${bhe_recreate_default_admin:-false}
       bhe_graph_driver: ${bhe_graph_driver:-neo4j}
+      # RACFHound fork: where the RACF Ingest page's transform sidecar lives.
+      RACFHOUND_SERVICE_URL: ${RACFHOUND_SERVICE_URL:-http://racfhound-svc:8000}
+      RACFHOUND_SERVICE_TIMEOUT: ${RACFHOUND_SERVICE_TIMEOUT:-60m}
     ports:
       - ${BH_API_PORT:-127.0.0.1:8080}:8080
       - ${TOOLAPI_PORT:-127.0.0.1:2112}:2112
@@ -181,6 +184,45 @@ services:
       - ./packages/javascript/js-client-library/src:/bloodhound/packages/javascript/js-client-library/src:ro
       - ./packages/javascript/doodle-ui/src:/bloodhound/packages/javascript/doodle-ui/src:ro
       - ui-cache:/.cache
+
+  # RACFHound fork: the Python transform service behind the RACF Ingest page. It
+  # turns an IRRDBU00 unload into OpenGraph JSON; bh-api reaches it at
+  # RACFHOUND_SERVICE_URL and feeds the result through the ordinary ingest pipeline.
+  #
+  # The image is built from the RACFHound workspace, not this repo, because
+  # racfhound depends on its sibling mfpandas-racfhound:
+  #
+  #   cd ../RACFHound-workspace
+  #   docker build -f racfhound/Dockerfile -t racfhound-svc:local .
+  #
+  # It sits in its own profile so a stock `--profile dev` up does not fail when
+  # that image has not been built:
+  #
+  #   docker compose --profile dev --profile racf -f docker-compose.dev.yml up -d
+  #
+  # No port is published: only bh-api should reach it, and it has no auth.
+  #
+  # The working trees are bind-mounted over the copies baked into the image, and
+  # both packages are pip-installed editable, so the container runs your local
+  # racfhound / mfpandas-racfhound source with no rebuild — the same arrangement
+  # as bh-api's ../dawgs mount. RACFHOUND_SERVE_RELOAD makes uvicorn restart on
+  # save, so an edit is live without even a container restart.
+  #
+  # Point RACFHOUND_SRC elsewhere if your workspace is not a sibling of this repo.
+  racfhound-svc:
+    profiles:
+      - racf
+    image: ${RACFHOUND_SVC_IMAGE:-racfhound-svc:local}
+    environment:
+      RACFHOUND_SERVE_HOST: 0.0.0.0
+      RACFHOUND_SERVE_PORT: "8000"
+      RACFHOUND_SERVE_RELOAD: "${RACFHOUND_SERVE_RELOAD:-1}"
+    volumes:
+      - ${RACFHOUND_SRC:-../RACFHound-workspace}/racfhound:/src/racfhound:ro
+      - ${RACFHOUND_SRC:-../RACFHound-workspace}/mfpandas-racfhound:/src/mfpandas-racfhound:ro
+    expose:
+      - "8000"
+    restart: unless-stopped
 
   debug-api:
     profiles:

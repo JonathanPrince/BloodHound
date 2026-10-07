@@ -18,7 +18,7 @@ import { Container } from '@mui/material';
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { addSnackbar } from 'src/ducks/global/actions';
-import { useAppDispatch, useAppSelector } from 'src/store';
+import { useAppDispatch } from 'src/store';
 
 interface LoginPageProps {
     children: React.ReactNode;
@@ -28,8 +28,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ children }) => {
     const dispatch = useAppDispatch();
     const [searchParams] = useSearchParams();
 
-    const darkMode = useAppSelector((state) => state.global.view.darkMode);
-    const imageUrl = darkMode ? '/img/logo-secondary-transparent-full.svg' : '/img/logo-transparent-full.svg';
     const errorMessage = searchParams.get('error');
 
     useEffect(() => {
@@ -41,15 +39,20 @@ const LoginPage: React.FC<LoginPageProps> = ({ children }) => {
     return (
         <div className='flex justify-center items-center h-full'>
             <Container maxWidth='sm'>
-                <div className='bg-neutral-2 shadow-outer-1 px-16 pb-16 pt-8'>
-                    <div className='h-full w-auto text-center box-border p-16'>
-                        <img
-                            src={`${import.meta.env.BASE_URL}${imageUrl}`}
-                            alt='BloodHound'
-                            style={{
-                                width: '100%',
-                            }}
-                        />
+                <div className='bg-[#faf6ed] shadow-outer-1 px-16 pb-16 pt-8'>
+                    {/*
+                      RACFHound fork: the login mark. racfhound-logo.png has no
+                      alpha channel — it carries a solid #faf6ed background — so the
+                      login card uses that same colour and the logo blends in.
+                    */}
+                    <div className='h-full w-auto text-center box-border px-8 py-12'>
+                        <span className='block overflow-hidden'>
+                            <img
+                                src={`${import.meta.env.BASE_URL}/img/racfhound-logo.png`}
+                                alt='RACFHound'
+                                className='block w-full'
+                            />
+                        </span>
                     </div>
                     {children}
                 </div>

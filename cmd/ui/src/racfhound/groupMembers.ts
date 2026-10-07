@@ -42,6 +42,18 @@ export const isRACFClassKind = (kind: string): boolean =>
         (racfClassKind) => racfClassKind.localeCompare(kind, undefined, { sensitivity: 'base' }) === 0
     );
 
+// These queries deliberately carry no ORDER BY. `RETURN DISTINCT x ORDER BY
+// x.name` is valid Cypher and works on the Neo4j backend, but BloodHound's
+// PostgreSQL graph driver translates it to `SELECT DISTINCT ... ORDER BY
+// x.name` with the sort key absent from the select list, which Postgres
+// rejects outright:
+//
+//   ERROR: for SELECT DISTINCT, ORDER BY expressions must appear in select
+//   list (SQLSTATE 42P10)
+//
+// That 500s every RACF relationship panel on a pg-backed instance. Sorting
+// happens client-side in fetchRACFRelatedNodes instead, which behaves the same
+// on both drivers.
 export const getRACFGroupMembersQuery = (databaseId: string): string => {
     if (!/^\d+$/.test(databaseId)) {
         throw new Error('RACF group database ID must be an integer');
@@ -51,8 +63,7 @@ export const getRACFGroupMembersQuery = (databaseId: string): string => {
 MATCH (group)
 WHERE ID(group) = ${databaseId}
 MATCH (member)-[:RACFMemberOf]->(group)
-RETURN DISTINCT member
-ORDER BY member.name`;
+RETURN DISTINCT member`;
 };
 
 export const getRACFGroupSubgroupsQuery = (databaseId: string): string => {
@@ -64,8 +75,7 @@ export const getRACFGroupSubgroupsQuery = (databaseId: string): string => {
 MATCH (group)
 WHERE ID(group) = ${databaseId}
 MATCH (group)-[:RACFHasSubgroup]->(subgroup)
-RETURN DISTINCT subgroup
-ORDER BY subgroup.name`;
+RETURN DISTINCT subgroup`;
 };
 
 export const getRACFGroupCanSubmitAsQuery = (databaseId: string): string => {
@@ -77,8 +87,7 @@ export const getRACFGroupCanSubmitAsQuery = (databaseId: string): string => {
 MATCH (group)
 WHERE ID(group) = ${databaseId}
 MATCH (group)-[:RACFSurrogateFor]->(target)
-RETURN DISTINCT target
-ORDER BY target.name`;
+RETURN DISTINCT target`;
 };
 
 export const getRACFUserGroupsQuery = (databaseId: string): string => {
@@ -90,8 +99,7 @@ export const getRACFUserGroupsQuery = (databaseId: string): string => {
 MATCH (user)
 WHERE ID(user) = ${databaseId}
 MATCH (user)-[:RACFMemberOf]->(group)
-RETURN DISTINCT group
-ORDER BY group.name`;
+RETURN DISTINCT group`;
 };
 
 export const getRACFUserCanSubmitAsQuery = (databaseId: string): string => {
@@ -103,8 +111,7 @@ export const getRACFUserCanSubmitAsQuery = (databaseId: string): string => {
 MATCH (user)
 WHERE ID(user) = ${databaseId}
 MATCH (user)-[:RACFSurrogateFor]->(target)
-RETURN DISTINCT target
-ORDER BY target.name`;
+RETURN DISTINCT target`;
 };
 
 export const getRACFUserSubmittedAsByQuery = (databaseId: string): string => {
@@ -116,8 +123,7 @@ export const getRACFUserSubmittedAsByQuery = (databaseId: string): string => {
 MATCH (user)
 WHERE ID(user) = ${databaseId}
 MATCH (principal)-[:RACFSurrogateFor]->(user)
-RETURN DISTINCT principal
-ORDER BY principal.name`;
+RETURN DISTINCT principal`;
 };
 
 export const getRACFUserClassAuthoritiesQuery = (databaseId: string): string => {
@@ -129,8 +135,7 @@ export const getRACFUserClassAuthoritiesQuery = (databaseId: string): string => 
 MATCH (user)
 WHERE ID(user) = ${databaseId}
 MATCH (user)-[:RACFClassAuth]->(class)
-RETURN DISTINCT class
-ORDER BY class.name`;
+RETURN DISTINCT class`;
 };
 
 export const getRACFClassUsersWithCLAUTHQuery = (databaseId: string): string => {
@@ -142,6 +147,5 @@ export const getRACFClassUsersWithCLAUTHQuery = (databaseId: string): string => 
 MATCH (class)
 WHERE ID(class) = ${databaseId}
 MATCH (user)-[:RACFClassAuth]->(class)
-RETURN DISTINCT user
-ORDER BY user.name`;
+RETURN DISTINCT user`;
 };

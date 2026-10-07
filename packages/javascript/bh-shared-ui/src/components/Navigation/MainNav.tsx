@@ -212,7 +212,7 @@ const MainNav: FC<{ mainNavData: MainNavData }> = ({ mainNavData }) => {
                 className={cn(
                     'flex flex-col flex-none font-medium shadow-md z-nav print:hidden overflow-hidden',
                     'transition-all duration-300 ease-in',
-                    'bg-[#F2F2F2] dark:bg-[#1F1F1F]',
+                    'bg-[#faf6ed] dark:bg-[#1F1F1F]',
                     { 'basis-nav-width': !isExpanded, 'basis-nav-width-expanded': isExpanded }
                 )}>
                 {/* Bloodhound logo */}

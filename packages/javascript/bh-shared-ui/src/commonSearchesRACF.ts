@@ -19,20 +19,40 @@ import { RACF_NODE_KINDS } from './utils/racfNodeIcons';
 
 const categoryRACF = 'RACF';
 
+// Every edge kind the RACFHound exporter emits — see the RACFHound repo's
+// docs/graph-model.md. Kept complete rather than trimmed to what the queries
+// below happen to use, so RACF_RELATIONSHIP_KINDS is a true list of RACF edges.
 const relationship = {
-    CanAccessKey: 'RACFCanAccessKey',
+    // Access. The RACF level is mapped onto the edge kind and also kept verbatim
+    // in the edge's Authorization property.
+    CanExecute: 'RACFCanExecute',
+    CanIssue: 'RACFCanIssue',
     CanRead: 'RACFCanRead',
     CanWrite: 'RACFCanWrite',
-    CertificateFor: 'RACFCertificateFor',
+
+    // Structure and ownership.
     ClassAuth: 'RACFClassAuth',
+    GenericCovers: 'RACFGenericCovers',
+    GroupAuthConnect: 'RACFGroupAuth_CONNECT',
+    GroupAuthCreate: 'RACFGroupAuth_CREATE',
+    GroupAuthJoin: 'RACFGroupAuth_JOIN',
+    GroupAuthUse: 'RACFGroupAuth_USE',
     GroupRevoke: 'RACFGroupRevoke',
     GroupScopeOper: 'RACFGroupScopeOper',
     GroupScopeSpecial: 'RACFGroupScopeSpecial',
-    HasPrivilege: 'RACFHasPrivilege',
     HasSubgroup: 'RACFHasSubgroup',
     MemberOf: 'RACFMemberOf',
     Owns: 'RACFOwns',
+
+    // Derived — these sit on top of an access edge rather than replacing it.
+    CanAccessKey: 'RACFCanAccessKey',
+    CertificateFor: 'RACFCertificateFor',
+    ControlsTask: 'RACFControlsTask',
+    HasMFAFactor: 'RACFHasMFAFactor',
+    HasPrivilege: 'RACFHasPrivilege',
+    LoadsFrom: 'RACFLoadsFrom',
     PassticketFor: 'RACFPassticketFor',
+    StartedTaskGroup: 'RACFStartedTaskGroup',
     StartedTaskRunsAs: 'RACFStartedTaskRunsAs',
     SurrogateFor: 'RACFSurrogateFor',
 } as const;

@@ -126,6 +126,10 @@ func NewV2API(resources v2.Resources, routerInst *router.Router) {
 	routerInst.GET(fmt.Sprintf("/api/v2/file-upload/{%s}/completed-tasks", v2.FileUploadJobIdPathParameterName), resources.GetCompletedTasks).RequirePermissions(permissions.GraphDBIngestRead)
 	routerInst.POST(fmt.Sprintf("/api/v2/file-upload/{%s}/end", v2.FileUploadJobIdPathParameterName), resources.EndIngestJob).RequirePermissions(permissions.GraphDBIngestManage)
 
+	// RACF Ingest API (RACFHound fork) — transforms an IRRDBU00 unload via the
+	// racfhound sidecar and queues the resulting OpenGraph for ingest.
+	routerInst.POST("/api/v2/racf/ingest", resources.RACFIngest).RequirePermissions(permissions.GraphDBIngestManage)
+
 	router.With(func() mux.MiddlewareFunc {
 		return middleware.DefaultRateLimitMiddleware(resources.DB)
 	},

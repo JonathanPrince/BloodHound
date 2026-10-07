@@ -150,7 +150,7 @@ const App: React.FC = () => {
             <ThemeProvider theme={theme}>
                 <CssBaseline />
                 <BrowserRouter future={reactRouterFutureFlags} basename='/ui' history={history}>
-                    <AppNameProvider name='BloodHound Community Edition'>
+                    <AppNameProvider name='RACFHound'>
                         <NotificationsProvider>
                             <AnnouncementProvider>
                                 <DialogProviders>

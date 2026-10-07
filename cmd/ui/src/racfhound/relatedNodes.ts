@@ -37,7 +37,13 @@ export const fetchRACFRelatedNodes = async (
         const response = await apiClient.cypherSearch(getQuery(databaseId), undefined, true);
         const nodes = response.data?.data?.nodes || {};
 
-        return Object.values(nodes).map((node) => normalizeRelatedNode(node as Record<string, any>, fallbackKind));
+        // Sorted here rather than with ORDER BY in the Cypher: the pg graph
+        // driver rejects `RETURN DISTINCT x ORDER BY x.name` (see the note in
+        // groupMembers.ts). Sorting client-side works on either backend, and
+        // these result sets are a panel's worth of rows, not a full graph.
+        return Object.values(nodes)
+            .map((node) => normalizeRelatedNode(node as Record<string, any>, fallbackKind))
+            .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
     } catch (error) {
         const status = (error as { response?: { status?: number } }).response?.status;
 

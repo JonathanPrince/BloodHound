@@ -22,6 +22,30 @@ describe('RACF node icons', () => {
         expect(RACF_NODE_ICONS[kind]).toBeDefined();
     });
 
+    // Pins the kind set to what the RACFHound exporter actually emits (see the
+    // RACFHound repo's docs/graph-model.md and racfhound/data/custom-types.json).
+    // A kind added there but not here renders with the generic fallback icon;
+    // a kind here that the exporter never emits is dead weight. Update both
+    // together.
+    it('covers exactly the kinds the exporter emits', () => {
+        expect(Object.values(RACF_NODE_KINDS).sort()).toEqual(
+            [
+                'RACFCertificate',
+                'RACFClass',
+                'RACFDataset',
+                'RACFGroup',
+                'RACFMFAFactor',
+                'RACFOperCmd',
+                'RACFPrivilege',
+                'RACFProgram',
+                'RACFResource',
+                'RACFStartedTask',
+                'RACFUndefined',
+                'RACFUser',
+            ].sort()
+        );
+    });
+
     it('allows a server-provided custom type to override the default', () => {
         const customIcon = {
             icon: RACF_NODE_ICONS[RACF_NODE_KINDS.Group].icon,

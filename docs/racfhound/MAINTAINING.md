@@ -62,6 +62,31 @@ These are the files most likely to conflict on a sync. Everything else RACF adde
 - `cmd/ui/src/views/Explore/GraphItemInformationPanel.tsx` — the wrapper (see panel pattern below).
 - `packages/javascript/bh-shared-ui/src/utils/index.ts` — barrel export includes `racfNodeIcons`.
 - `packages/javascript/bh-shared-ui/src/views/Explore/ExploreSearch/SavedQueries/QuerySearchFilter.tsx` — adds the `RACF` query-category menu item.
+- `cmd/ui/src/routes/constants.ts` — adds the **RACF Ingest** entry to `adminSections` and re-exports `ROUTE_ADMINISTRATION_RACF_INGEST` from `src/racfhound/routes.ts`. Upstream edits this file whenever it adds an admin page, so expect conflicts here; the fix is almost always to keep both entries.
+- `cmd/api/src/api/registration/v2.go` — one line registering `POST /api/v2/racf/ingest`.
+- `docker-compose.dev.yml` — the `racfhound-svc` service and the two `RACFHOUND_*` env vars on `bh-api`.
+
+### Keeping the RACF kind lists in step with the exporter
+
+`mfpandas_racfhound` decides which node and edge kinds exist; the fork mirrors that list in **three**
+places, and all three have rotted before. When the exporter gains or renames a kind, update:
+
+| File | Holds |
+|---|---|
+| `packages/javascript/bh-shared-ui/src/utils/racfNodeIcons.ts` | `RACF_NODE_KINDS` + fallback icons |
+| `packages/javascript/bh-shared-ui/src/commonSearchesRACF.ts` | the `relationship` edge map |
+| `cmd/api/src/racfhound/pathfinding.go` | pathfinding / non-pathfinding edge split |
+
+Each has a drift test that fails in **both** directions — a kind the exporter emits that the fork
+ignores, and a kind the fork lists that the exporter never emits. The failure mode without them is
+silent: Pathfinder simply never proposes paths across the unknown edge, and nothing errors.
+
+Authoritative model: the RACFHound repo's `docs/graph-model.md`, with
+`racfhound/data/custom-types.json` as the icon registry. Ground-truth check when the docs look stale:
+
+```bash
+grep -ohE '"RACF[A-Za-z_]+"' mfpandas_racfhound/*.py | sort -u
+```
 
 **Semantic-merge warning:** the backend files above frequently *auto-merge textually* even when both sides edited them. Auto-merge success ≠ correctness — always run the Go build + RACF tests after, and confirm the helper functions RACF calls still exist upstream (e.g. `FetchNodeByObjectIDIncludeOpenGraph`).
 
@@ -180,6 +205,54 @@ runs Vite dev.
   if Go deps change.
 - `tree-sitter-*` native rebuild failures during `yarn install` on Windows are harmless (optional deps).
 
+### Graph driver: use `pg`, not Neo4j
+
+```bash
+bhe_graph_driver=pg docker compose --profile dev --profile racf -f docker-compose.dev.yml up -d
+```
+
+Neo4j cannot ingest a realistically-sized RACF graph. Measured on a 68 MB unload (80k nodes / 186k
+edges): Neo4j sat 20+ minutes in one edge batch and committed nothing; pg finished the whole job in
+about three minutes. Custom kinds never get indexes (`AssertSchema` only asserts
+`DefaultGraphSchema()`), and BHCE's edge ingest merges endpoints without a label, so every row is a
+full node scan. See DECISIONS.md for the full write-up.
+
+Two consequences worth remembering:
+
+- **The env var does not persist.** `tools.LookupGraphDriver` prefers the `database_switch` table and
+  falls back to the configured driver. Export `bhe_graph_driver=pg`, or call `SwitchPostgreSQL`
+  (`cmd/api/src/api/tools/pg.go`), which writes the row *and* asserts the pg schema.
+- **pg is stricter about Cypher than Neo4j.** `RETURN DISTINCT x ORDER BY x.name` is valid on Neo4j
+  and a hard 500 on pg (`SQLSTATE 42P10`). Any new RACF query must be tested against pg — the RACF
+  panels all broke this way. Sort client-side.
+
+### The RACF transform sidecar
+
+The **RACF Ingest** page needs `racfhound-svc`, a Python service that turns an IRRDBU00 unload into
+OpenGraph JSON. Its image is built from the **RACFHound workspace**, not this repo, because
+`racfhound` depends on its sibling `mfpandas-racfhound`:
+
+```bash
+cd ../RACFHound-workspace
+docker build -f racfhound/Dockerfile -t racfhound-svc:local .
+```
+
+It lives in its own `racf` profile so a stock `--profile dev` up does not fail when that image is
+missing:
+
+```bash
+docker compose --profile dev --profile racf -f docker-compose.dev.yml up -d
+```
+
+`bh-api` reaches it via `RACFHOUND_SERVICE_URL` (default `http://racfhound-svc:8000`) and bounds a
+single transform with `RACFHOUND_SERVICE_TIMEOUT` (default `60m`). If the page returns **503**, the
+sidecar isn't up — that check is a deliberate pre-flight so a multi-gigabyte upload doesn't have to
+fail at the end. To run it on the host instead of in compose:
+`pip install 'racfhound[serve]' && racfhound serve` and set
+`RACFHOUND_SERVICE_URL=http://host.docker.internal:8000`.
+
+Full design notes: [`racf-ingest-page.md`](racf-ingest-page.md).
+
 ## CI: CLA Assistant fails on the fork
 
 `.github/workflows/cla.yml` is a **SpecterOps-org-only** workflow. On the fork it calls
@@ -201,5 +274,5 @@ Or disable it entirely on the fork with no file change: `gh workflow disable "CL
 
 Per-panel behavior is documented alongside this file in `docs/racfhound/`:
 `group-members-panel.md`, `group-relationships-panel.md`, `user-groups-panel.md`,
-`user-relationships-panel.md`, `class-authorities-panel.md`. See also `LLM_INSTRUCTIONS_RACFHOUND.md`
-at the repo root.
+`user-relationships-panel.md`, `class-authorities-panel.md`. The upload/ingest flow is in
+`racf-ingest-page.md`. See also `LLM_INSTRUCTIONS_RACFHOUND.md` at the repo root.

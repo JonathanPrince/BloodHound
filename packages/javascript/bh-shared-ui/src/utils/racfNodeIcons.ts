@@ -17,31 +17,36 @@
 import {
     faCertificate,
     faCircleQuestion,
+    faCode,
     faCog,
     faCube,
     faFile,
     faKey,
-    faRoute,
     faShieldHalved,
     faTag,
-    faTriangleExclamation,
+    faTerminal,
     faUser,
     faUsers,
     IconDefinition,
 } from '@fortawesome/free-solid-svg-icons';
 
+// The twelve kinds the RACFHound exporter emits. This must stay in step with
+// `custom_types` in racfhound/data/custom-types.json — that file gives each kind
+// its icon on a provisioned instance, and this one is the client-side fallback
+// for instances where provisioning has not run. See the RACFHound repo's
+// docs/graph-model.md for the authoritative model.
 export const RACF_NODE_KINDS = {
     User: 'RACFUser',
     Group: 'RACFGroup',
     Dataset: 'RACFDataset',
     Resource: 'RACFResource',
+    Program: 'RACFProgram',
+    OperCmd: 'RACFOperCmd',
     Privilege: 'RACFPrivilege',
     Class: 'RACFClass',
     StartedTask: 'RACFStartedTask',
     Certificate: 'RACFCertificate',
     MFAFactor: 'RACFMFAFactor',
-    Finding: 'RACFFinding',
-    Path: 'RACFPath',
     Undefined: 'RACFUndefined',
 } as const;
 
@@ -69,6 +74,17 @@ export const RACF_NODE_ICONS: Record<RACFNodeKind, RACFIconInfo> = {
         icon: faCube,
         color: '#AF7AC5',
     },
+    // PROGRAM and OPERCMDS profiles are promoted out of RACFResource into their
+    // own kinds — program control and operator-command authority are distinct
+    // attack surfaces and read better with their own icons.
+    [RACF_NODE_KINDS.Program]: {
+        icon: faCode,
+        color: '#E67E22',
+    },
+    [RACF_NODE_KINDS.OperCmd]: {
+        icon: faTerminal,
+        color: '#C0392B',
+    },
     [RACF_NODE_KINDS.Privilege]: {
         icon: faKey,
         color: '#E74C3C',
@@ -83,19 +99,11 @@ export const RACF_NODE_ICONS: Record<RACFNodeKind, RACFIconInfo> = {
     },
     [RACF_NODE_KINDS.Certificate]: {
         icon: faCertificate,
-        color: '#D4AC0D',
+        color: '#5DADE2',
     },
     [RACF_NODE_KINDS.MFAFactor]: {
         icon: faShieldHalved,
-        color: '#2E86C1',
-    },
-    [RACF_NODE_KINDS.Finding]: {
-        icon: faTriangleExclamation,
-        color: '#E67E22',
-    },
-    [RACF_NODE_KINDS.Path]: {
-        icon: faRoute,
-        color: '#EC7063',
+        color: '#16A085',
     },
     [RACF_NODE_KINDS.Undefined]: {
         icon: faCircleQuestion,

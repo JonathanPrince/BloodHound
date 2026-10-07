@@ -16,6 +16,7 @@
 
 import { ROUTE_PRIVILEGE_ZONES, SubNavSection } from 'bh-shared-ui';
 import { lazy } from 'react';
+import { ROUTE_ADMINISTRATION_RACF_INGEST } from 'src/racfhound/routes';
 
 export const ROUTE_HOME = '/';
 export const ROUTE_EXPLORE = '/explore';
@@ -31,6 +32,9 @@ export const ROUTE_DOWNLOAD_COLLECTORS = '/download-collectors';
 export const ROUTE_ADMINISTRATION = '/administration/';
 export const ROUTE_ADMINISTRATION_ROOT = ROUTE_ADMINISTRATION + '*';
 export const ROUTE_ADMINISTRATION_FILE_INGEST = ROUTE_ADMINISTRATION + 'file-ingest';
+// RACFHound fork: IRRDBU00 unload + runtime inventory -> OpenGraph ingest.
+// Declared in src/racfhound/routes.ts; re-exported here alongside the rest.
+export { ROUTE_ADMINISTRATION_RACF_INGEST };
 export const ROUTE_ADMINISTRATION_DATA_QUALITY = ROUTE_ADMINISTRATION + 'data-quality';
 export const ROUTE_ADMINISTRATION_DB_MANAGEMENT = ROUTE_ADMINISTRATION + 'database-management';
 export const ROUTE_ADMINISTRATION_MANAGE_USERS = ROUTE_ADMINISTRATION + 'manage-users';
@@ -55,6 +59,12 @@ export const adminSections: SubNavSection[] = [
                 label: 'File Ingest',
                 path: ROUTE_ADMINISTRATION_FILE_INGEST,
                 component: lazy(() => import('bh-shared-ui/FileIngest')),
+                adminOnly: false,
+            },
+            {
+                label: 'RACF Ingest',
+                path: ROUTE_ADMINISTRATION_RACF_INGEST,
+                component: lazy(() => import('src/racfhound/RACFIngest')),
                 adminOnly: false,
             },
             {
